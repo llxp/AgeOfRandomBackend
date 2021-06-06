@@ -99,17 +99,41 @@ class AORStringsParser(AORXMLParser):
         return self.strings[string_id]
 
 
+class HomecityParser(AORXMLParser):
+    def __init__(self, directory_path: str, path: str):
+        AORXMLParser.__init__(self)
+        self.xml = self.load_xml(path)
+        self.directory_path = directory_path
+        print(len(self.get_homecity_files()))
+
+    def get_homecity_files(self):
+        unique = set({AORXMLParser.get_element(civ, 'homecityfilename'): '' for civ in self.xml if civ.tag == 'civ'})
+        notnone = [self.directory_path + '\\' + file for file in unique if file is not None]
+        return [file for file in notnone if isfile(file)]
+        # for child in self.xml:
+        #     if child.tag == 'civ':
+        #         civ = child
+        #         homecityfilename = AORXMLParser.get_element(civ, 'homecityfilename')
+        #         if homecityfilename:
+        #             print(homecityfilename)
+
+
 class AORCardParser(AORXMLParser):
     def __init__(
         self,
         directory_path: str,
         tech_parser: AORTechParser,
-        strings_parser: AORStringsParser
+        strings_parser: AORStringsParser,
+        homecity_parser: HomecityParser
     ):
         AORXMLParser.__init__(self)
         self.tech_parser = tech_parser
         self.strings_parser = strings_parser
-        self.load_all(directory_path)
+        self.homecity_parser = homecity_parser
+        self.xml_files = self.homecity_parser.get_homecity_files()
+        print(self.xml_files)
+        self.load_all_xml()
+        # self.load_all_recursive(directory_path, 'homecity*.xml')
         self.get_cards()
 
     def get_cards(self):

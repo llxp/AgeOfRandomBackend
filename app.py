@@ -1,7 +1,9 @@
 import os
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from aor_parser import AORTechParser, AORCardParser, AORStringsParser
+from aor_parser import \
+    AORTechParser, AORCardParser, \
+    AORStringsParser, HomecityParser
 
 app = Flask(__name__, static_url_path='')
 cors = CORS(app)
@@ -9,11 +11,16 @@ cors = CORS(app)
 current_path = os.getcwd()
 
 tech_parser = AORTechParser(
-    current_path + '\\data\\techtree\\Data\\techtreey.xml')
+    current_path + '\\data\\Data\\techtreey.xml')
 strings_parser = AORStringsParser(
-    current_path + '\\data\\strings')
+    current_path + '\\data\\Data\\strings')
+homecity_parser = HomecityParser(current_path + '\\data\\Data', current_path + '\\data\\Data\\civs.xml')
 parser = AORCardParser(
-    current_path + '\\data\\nations', tech_parser, strings_parser)
+    current_path + '\\data\\Data',
+    tech_parser,
+    strings_parser,
+    homecity_parser
+)
 
 
 @app.route(
