@@ -3,7 +3,7 @@ from os.path import isfile, join, splitext
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from xml.etree.ElementTree import Element
-from typing import List
+from typing import Dict
 from pathlib import Path
 
 
@@ -13,7 +13,7 @@ class Card():
     age: int = 0
     displayunitcount: int = 0
     icon: str = ''
-    strings: List[str] = field(default=lambda: [])
+    strings: Dict[str, str] = field(default=lambda: {})
 
 
 class AORXMLParser():
@@ -85,15 +85,17 @@ class AORStringsParser(AORXMLParser):
         self.strings = {}
         for file in self.xml_files:
             language_element = self.roots[file].findall('language')[0]
+            language = language_element.attrib['name']
             if language_element:
                 for string in language_element:
                     if string.attrib['_locid'] in self.strings:
-                        self.strings[string.attrib['_locid']] \
-                            .append(string.text)
+                        self.assign_string(language, string)
                     else:
-                        self.strings[string.attrib['_locid']] = []
-                        self.strings[string.attrib['_locid']] \
-                            .append(string.text)
+                        self.strings[string.attrib['_locid']] = {}
+                        self.assign_string(language, string)
+
+    def assign_string(self, language: str, string):
+        self.strings[string.attrib['_locid']][language] = string.text
 
     def get_string(self, string_id: str):
         return self.strings[string_id]
@@ -104,18 +106,11 @@ class HomecityParser(AORXMLParser):
         AORXMLParser.__init__(self)
         self.xml = self.load_xml(path)
         self.directory_path = directory_path
-        print(len(self.get_homecity_files()))
 
     def get_homecity_files(self):
         unique = set({AORXMLParser.get_element(civ, 'homecityfilename'): '' for civ in self.xml if civ.tag == 'civ'})
         notnone = [self.directory_path + '\\' + file for file in unique if file is not None]
         return [file for file in notnone if isfile(file)]
-        # for child in self.xml:
-        #     if child.tag == 'civ':
-        #         civ = child
-        #         homecityfilename = AORXMLParser.get_element(civ, 'homecityfilename')
-        #         if homecityfilename:
-        #             print(homecityfilename)
 
 
 class AORCardParser(AORXMLParser):
@@ -131,9 +126,7 @@ class AORCardParser(AORXMLParser):
         self.strings_parser = strings_parser
         self.homecity_parser = homecity_parser
         self.xml_files = self.homecity_parser.get_homecity_files()
-        print(self.xml_files)
         self.load_all_xml()
-        # self.load_all_recursive(directory_path, 'homecity*.xml')
         self.get_cards()
 
     def get_cards(self):
@@ -142,7 +135,8 @@ class AORCardParser(AORXMLParser):
         for file in self.xml_files:
             self.get_cards_element(file)
             self.cards[self.get_nation(file)] = []
-            self.get_cards_cards(file)
+            nation = self.get_nation(file)
+            self.get_cards_cards(nation, file)
 
     def get_cards_element(self, file: str):
         for child in self.roots[file]:
@@ -153,7 +147,7 @@ class AORCardParser(AORXMLParser):
     def get_nation(self, file):
         return AORXMLParser.get_element(self.roots[file], 'civ')
 
-    def get_cards_cards(self, file: str):
+    def get_cards_cards(self, nation: str, file: str):
         for card in self.cards_xml[file]:
             if card.tag == 'card':
                 name = AORXMLParser.get_element(card, 'name')
@@ -165,7 +159,7 @@ class AORCardParser(AORXMLParser):
                 strings = \
                     self.strings_parser.get_string(displaynameid) \
                     if displaynameid is not None else []
-                self.cards[self.get_nation(file)].append(
+                self.cards[nation].append(
                     Card(
                         name=name,
                         age=age,

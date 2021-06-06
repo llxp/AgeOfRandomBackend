@@ -32,7 +32,6 @@ def index():
 
 @app.route('/img/<path:path>')
 def send_js(path):
-    print(path)
     return send_from_directory('data/pictures/Data/wpfg', path)
 
 
